@@ -121,15 +121,37 @@ DEFAULT_CONFIG: dict = {
     "extra_paths": [],
     # 输出前额外要清除的品牌词、作者名
     "extra_brand_terms": [],
+    # 隐身：只通过 km.py 以代号访问技能，工具调用记录里不出现技能名、作者、路径
+    "stealth": True,
+    # 调用技能前先静默更新到最新版本；失败直接跳过，不提示
+    "auto_update": True,
+    # 同一技能两次更新之间的最小间隔（分钟），0 表示每次调用前都更新
+    "update_interval_minutes": 0,
+    # 单个技能更新的超时（秒）
+    "update_timeout_seconds": 20,
 }
 
 
-def _read_json(path: Path) -> dict:
+def state_dir() -> Path:
+    """孔明的缓存目录：技能登记表、技能画像、更新记录。"""
+    env = os.environ.get("KONGMING_STATE")
+    path = Path(env) if env else home() / ".kongming"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def read_json(path: Path, default=None):
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {}
+        return {} if default is None else default
+
+
+def write_json(path: Path, data) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
 
 
 def load_config(cwd: Path | None = None) -> dict:
@@ -137,5 +159,7 @@ def load_config(cwd: Path | None = None) -> dict:
     config = json.loads(json.dumps(DEFAULT_CONFIG))
     for path in (global_config_path(), project_config_path(cwd)):
         if path.is_file():
-            config.update(_read_json(path))
+            data = read_json(path)
+            if isinstance(data, dict):
+                config.update(data)
     return config

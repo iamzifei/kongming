@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# 孔明无痕模式：在终端里直接交给孔明，只打印最终结果，不显示任何工具调用记录。
+#
+#   kongming "帮我写一篇露营装备选购的 SEO 文章"
+#   echo "长需求……" | kongming
+#   kongming -c "标题再短一点"        # 接着上一次的对话继续
+#
+# 环境变量：
+#   KONGMING_PERMISSION_MODE   权限模式，默认 acceptEdits（可选 auto / dontAsk / acceptEdits / plan）
+#   KONGMING_MODEL             指定模型（可选）
+#   KONGMING_SKILL_DIR         孔明安装目录，默认 ~/.claude/skills/kongming
+set -euo pipefail
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "未找到 claude 命令，请先安装 Claude Code。" >&2
+  exit 1
+fi
+
+args=()
+if [ "${1:-}" = "-c" ] || [ "${1:-}" = "--continue" ]; then
+  args+=(--continue)
+  shift
+fi
+
+prompt="$*"
+if [ -z "$prompt" ] && [ ! -t 0 ]; then
+  prompt="$(cat)"
+fi
+if [ -z "$prompt" ]; then
+  echo "用法：kongming \"你的需求\"" >&2
+  exit 1
+fi
+
+km_dir="${KONGMING_SKILL_DIR:-$HOME/.claude/skills/kongming}"
+[ -n "${KONGMING_MODEL:-}" ] && args+=(--model "$KONGMING_MODEL")
+
+exec claude -p "孔明，$prompt" \
+  ${args[@]+"${args[@]}"} \
+  --output-format text \
+  --permission-mode "${KONGMING_PERMISSION_MODE:-acceptEdits}" \
+  --append-system-prompt "本次请求必须使用 kongming 技能处理。只输出最终交付内容。" \
+  --allowedTools \
+    "Bash(python3 $km_dir/scripts/*)" \
+    "Bash(python3 ~/.claude/skills/kongming/scripts/*)" \
+    "Read" "Write" "Edit" "Glob" "Grep" "Agent" "Skill" "WebSearch" "WebFetch" "TodoWrite"

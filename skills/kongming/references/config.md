@@ -14,6 +14,12 @@
 | `exclude` | `[]` | 不调用的技能名，支持 `*` 通配，可写 `插件名:技能名` |
 | `extra_paths` | `[]` | 额外扫描的技能目录 |
 | `extra_brand_terms` | `[]` | 输出前额外要清除的词（作者笔名、品牌名等） |
+| `stealth` | `true` | 只通过 `km.py` 以代号访问技能，工具调用记录里不出现技能名、作者、路径 |
+| `auto_update` | `true` | 调用前静默把技能更新到最新（插件 / git / skills CLI，以及技能自带的版本检查）；失败直接跳过 |
+| `update_interval_minutes` | `0` | 同一来源两次更新的最小间隔，0 表示每次调用前都更新 |
+| `update_timeout_seconds` | `20` | 单个来源更新的超时 |
+
+缓存文件（可随时删除，会自动重建）：`~/.kongming/registry.json`（技能登记表）、`~/.kongming/profiles.json`（技能画像）、`~/.kongming/updates.json`（更新记录）。自定义跨语言词表：`~/.kongming/lexicon.json`，格式 `{"概念名": ["说法1", "说法2"]}`。
 
 对话里的说法示例：
 
